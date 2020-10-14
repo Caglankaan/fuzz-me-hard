@@ -17,7 +17,12 @@ example
 ```bash
 sudo ./fuzz_me_hard -w ~/workdir/ -b ~/image_process/a.out -f ~/image_process/small_city.pgm
 ```
+If you want you can also define timer, after specified time past if there are not any new crashes program exits due to timeout. You canadd timeout with -t tag.
 
+Example for 15 sec timeout: 
+```bash
+sudo ./fuzz_me_hard -w ~/workdir/ -b ~/image_process/a.out -f ~/image_process/small_city.pgm -t 15
+```
 Example output:
 
 ```bash

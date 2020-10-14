@@ -5,6 +5,7 @@
 #include "file_io.h"
 #include <unistd.h>
 #include "mutation.h"
+#include "timer.h"
 
 std::vector<std::string> split(const std::string& str, const std::string& delim)
 {
@@ -40,6 +41,8 @@ int main(int argc, char **argv){
     std::string mutation_type{"dword"};
     std::string log_file{"log.txt"};
     std::string work_dir{"./"};
+    std::string time_out{};
+    int timeout = -1;
 
     if(input.cmdOptionExists("-w"))
     {
@@ -49,7 +52,6 @@ int main(int argc, char **argv){
             std::cout << "Please enter valid working directory. \"" << work_dir << "\" does not exists\n";
             exit(1);
         }
-        
     }
     if(input.cmdOptionExists("-b"))
     {
@@ -68,7 +70,17 @@ int main(int argc, char **argv){
     }
     if(input.cmdOptionExists("-t"))
     {
-        mutation_type = input.getCmdOption("-t");
+        time_out = input.getCmdOption("-t");
+        if(!(!time_out.empty() && std::all_of(time_out.begin(), time_out.end(), ::isdigit)))
+        {
+            std::cout << "Please enter valid timeout(int)!\n";
+            exit(1);
+        }
+        else
+        {
+            timeout = std::stoi(time_out);
+        }
+        
     }
     if(input.cmdOptionExists("-f"))
     {
@@ -91,6 +103,9 @@ int main(int argc, char **argv){
     
     Mutation mut(original_file, mutation_type, work_dir_path);
 
+    Timer timer;
+    timer.startTimer(timeout);
+    
     for(int i = 0; i < mut.original_file_content.size(); i++)
     {
         for(int j = 0; j < mut.values.size(); j++)
@@ -98,7 +113,7 @@ int main(int argc, char **argv){
             std::string filename = mut.mutateTheFile(i,j);
             std::filesystem::path filename_fs(filename);
             std::filesystem::path input_path = work_dir_path/filename_fs;
-            if(!fuzzer.fuzz(input_path))
+            if(!fuzzer.fuzz(input_path, timer))
             {
                 FileIO::removeFile(input_path);
             }

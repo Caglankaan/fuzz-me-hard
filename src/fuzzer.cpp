@@ -25,7 +25,7 @@ void threadForFuzzing(std::string name, std::string command)
     exec(command.c_str(), name);
 }
 
-bool Fuzzer::fuzz(const std::filesystem::path &filename)
+bool Fuzzer::fuzz(const std::filesystem::path &filename, Timer &timer)
 {
     pid_t pid = fork();
     if(pid < 0)
@@ -66,6 +66,7 @@ bool Fuzzer::fuzz(const std::filesystem::path &filename)
                pid, WTERMSIG(stat),
                WCOREDUMP(stat) ? " - core dumped" : "", filename.c_str());
             crash_count+=1;
+            timer.restart();
             return true;
         }
     }
