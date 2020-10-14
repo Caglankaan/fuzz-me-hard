@@ -1,3 +1,8 @@
+#pragma once
+
+#ifndef SHELLPHUZZ_CPP_HEADERS_PARAMETERS
+#define SHELLPHUZZ_CPP_HEADERS_PARAMETERS
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -24,3 +29,5 @@ class InputParser{
     private:
         std::vector <std::string> tokens;
 };
+
+#endif

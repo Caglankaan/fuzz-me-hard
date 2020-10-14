@@ -1,40 +1,48 @@
+#pragma once
+
+#ifndef FUZZ_ME_HARD_HEADERS_TIMER
+#define FUZZ_ME_HARD_HEADERS_TIMER
+
 #include <iostream>
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <thread>
 
 class Timer {
     bool clear = false;
     std::mutex mtx; 
     public:
-        int elapsed_time{};
-        template<typename Callback>
-        void setInterval(Callback function, int interval);
-        void stop();
+        int elapsed_time{15};
+        int time_out_counter{0};
+        
+        void startTimer(int timeout);
+        void addSecond(int interval);
 
 };
 
-template<typename Callback>
-void Timer::setInterval(Callback function, int interval) {
-    this->clear = false;
-    std::thread t([=]() {
-        while(true) {
-            mtx.lock();
-            if(this->clear) return;
-            mtx.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(interval));
-            mtx.lock();
-            if(this->clear) return;
-            mtx.unlock();
-            function();
+void Timer::startTimer(int timeout)
+{
+    std::thread([&]
+    {
+        for(;;)
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            time_out_counter += 1;
+
+            std::cout << "timeout counter: " << time_out_counter << " (stops when " << timeout << ")\n";
+            if(time_out_counter == timeout)
+            {
+                std::cout << "timeout reached!\n";
+                exit(0);
+            }
         }
     });
-    t.detach();
 }
 
-
-void Timer::stop() {
-    mtx.lock();
-    this->clear = true;
-    mtx.unlock();
+void Timer::addSecond(int interval)
+{
+    this->time_out_counter -= interval;
 }
+
+#endif

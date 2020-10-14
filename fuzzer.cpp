@@ -1,19 +1,11 @@
 #include "fuzzer.h"
-#include <thread> 
-#include <vector>
 
-Fuzzer::Fuzzer(const std::filesystem::path& work_dir, const std::string& binary_path_, const std::string& mutation_type_)
+Fuzzer::Fuzzer(const std::filesystem::path& work_dir, const std::filesystem::path& temp_dir_, const std::filesystem::path& binary_dir_)
 {
-    std::filesystem::path save("save");
-    std::filesystem::path temp("temp");
     std::filesystem::path log("log.txt");
-    save_path = work_dir / save;
-    temp_path = work_dir / temp;
-    log_path = work_dir / log;
-    binary_path = binary_path_;
-    mutation_type = mutation_type_;
-
-    
+    log_dir = work_dir / log;
+    binary_dir = binary_dir_;
+    temp_dir = temp_dir_;
 }
 
 void exec(const char* cmd, std::string &filename) {
@@ -33,18 +25,49 @@ void threadForFuzzing(std::string name, std::string command)
     exec(command.c_str(), name);
 }
 
-void Fuzzer::start()
+bool Fuzzer::fuzz(const std::filesystem::path &filename)
 {
-    /*
-    std::vector<std::thread> workers;
-    for(int i = 1; i <= 1; i++)
+    pid_t pid = fork();
+    if(pid < 0)
     {
-      
-        workers.push_back(std::thread(threadForFuzzing, "name", "ss_command.str()"));
+        std::cout << "Fork Error!\n";
+        exit(1);
     }
-    
-    for(auto &thread: workers){
-        thread.join();
+    else if(pid == 0) // child process so we can run our binary
+    {
+        //This is to close stdout (redirect it to /dev/null)
+        int fd = open("/dev/null", O_WRONLY);
+        dup2(fd,1);
+        dup2(fd,2);
+        close(fd);
+        
+
+        execl(binary_dir.c_str(),binary_dir.c_str(),  filename.c_str(), NULL);
+        std::cout << "Error occured when running execl()\n";
+        exit(1);
     }
-    */
+    else
+    {
+        int stat;
+        //The waitpid() system call suspends execution of the current process until a child specified by pid argument has changed state.
+        if(waitpid(pid, &stat, 0) < 0)
+        {
+            std::cout << "Waitpid error\n";
+            exit(254);
+        }
+        if(WIFEXITED(stat)) //Successfuly executed
+        {
+            return false;
+            //std::cout << "Process " << pid << " returned " << WEXITSTATUS(stat) << "\n";
+        }
+        if(WIFSIGNALED(stat)) //Crash occured
+        {
+            printf("Process %d killed: signal %d%s  (filename: %s)\n",
+               pid, WTERMSIG(stat),
+               WCOREDUMP(stat) ? " - core dumped" : "", filename.c_str());
+            crash_count+=1;
+            return true;
+        }
+    }
+    return false;
 }

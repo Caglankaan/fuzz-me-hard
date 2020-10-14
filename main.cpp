@@ -4,7 +4,7 @@
 #include "fuzzer.h"
 #include "file_io.h"
 #include <unistd.h>
-
+#include "mutation.h"
 
 std::vector<std::string> split(const std::string& str, const std::string& delim)
 {
@@ -37,7 +37,7 @@ int main(int argc, char **argv){
 
     std::string binary_path{};
     std::string original_file{};
-    std::string mutation_type{};
+    std::string mutation_type{"dword"};
     std::string log_file{"log.txt"};
     std::string work_dir{"./"};
 
@@ -70,11 +70,6 @@ int main(int argc, char **argv){
     {
         mutation_type = input.getCmdOption("-t");
     }
-    else
-    {
-        std::cout << "Please enter binary path!\n";
-        exit(1);
-    }
     if(input.cmdOptionExists("-f"))
     {
         original_file = input.getCmdOption("-f");
@@ -91,7 +86,29 @@ int main(int argc, char **argv){
     }
     
     std::filesystem::path work_dir_path(work_dir);
-    Fuzzer fuzzer(work_dir_path, binary_path, mutation_type);
+
+    Fuzzer fuzzer(work_dir_path, binary_path, binary_path);
+    
+    Mutation mut(original_file, mutation_type, work_dir_path);
+
+    for(int i = 0; i < mut.original_file_content.size(); i++)
+    {
+        for(int j = 0; j < mut.values.size(); j++)
+        {
+            std::string filename = mut.mutateTheFile(i,j);
+            std::filesystem::path filename_fs(filename);
+            std::filesystem::path input_path = work_dir_path/filename_fs;
+            if(!fuzzer.fuzz(input_path))
+            {
+                FileIO::removeFile(input_path);
+            }
+        }
+        if(i%10 == 0)
+            std::cout << std::to_string(i*mut.values.size()) << " mutation executed, current crash count: " << fuzzer.crash_count << "\n";
+    }
+    
+    std::cout << "Total crashes: " << fuzzer.crash_count << " in " << std::to_string(mut.values.size() * mut.original_file_content.size()) << " execution" << "\n";
+    
     
     return 0;
 }

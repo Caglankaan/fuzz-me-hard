@@ -13,13 +13,14 @@ bool FileIO::fileExists (const std::string& name) {
   return (stat (name.c_str(), &buffer) == 0) && (buffer.st_mode & S_IFREG); 
 }
 
-std::string fileToString(const std::string &fileName)
+std::string FileIO::fileToString(const std::string &fileName)
 {
     std::ifstream t(fileName);
     std::string str((std::istreambuf_iterator<char>(t)),
                         std::istreambuf_iterator<char>());
     return str;
 }
+
 bool FileIO::isDirectoryExists (const std::string& path)
 {
     return std::filesystem::is_directory(path);
@@ -28,11 +29,22 @@ bool FileIO::isDirectoryExists (const std::string& path)
 void FileIO::writeToFile(std::string filetext, std::string &file_name) {
     std::ofstream myfile;
     myfile.open (file_name, std::fstream::app);
-    myfile <<filetext;
+    myfile << filetext;
     myfile.close();
 }
+
+void FileIO::removeDirectory(const std::string &path)
+{
+    std::filesystem::remove_all(path);
+}
+
+void FileIO::removeFile(const std::string &path)
+{
+    std::filesystem::remove(path);
+}
+
 void FileIO::createDirectory(const std::string &path)
 {
     std::filesystem::create_directory(path);
- 
- }
+}
+
